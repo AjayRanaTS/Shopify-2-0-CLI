@@ -1,0 +1,108 @@
+{%- if content_for_header contains '.mezereon' and shop.metafields.mezereon.status == 'enabled' -%}
+{%- if shop.metafields.mezereon.search == 'enabled' -%}
+{%- assign loadingEffect = 'skeleton'-%}
+{%- assign loadingEffect = 'spinner'-%}
+{%- assign loadingEffect = 'none'-%}
+{%- capture filterLayout -%}{% render 'mezereon-filter-layout', f: 'filter-layout' %}{%- endcapture -%}
+{% assign filterLayout = filterLayout | strip %}
+{%- assign filterLayoutClass = 'mz-filter-layout-' | append: filterLayout -%}
+{%- capture filterSelections -%}{% render 'mezereon-filter-layout', f: 'filter-selections' %}{%- endcapture -%}
+{%- assign filterSelections = filterSelections | strip -%}
+{%- if filterSelections == 'true' -%}
+  {%- assign filterSelections = true -%}
+{%- else -%}
+  {%- assign filterSelections = false -%}
+{%- endif -%}
+<div id="mz-app">
+  {%- if loadingEffect == 'spinner'-%}
+  <img src="https://cdn.mezereon.net/assets/loading.gif" class="mz-loader" v-if="loading" />
+  {%- endif -%}
+  <div class="mz-search-revealed" :style="{'opacity': keyword && !loading ? 1 : 0}">
+    Your search for "<span v-text="keyword"></span>" revealed the following
+  </div>
+  {%- if loadingEffect == 'none'-%}
+  <div class="mz-results" :class="{'mz-loaded': !loading }">
+  {%- elsif loadingEffect == 'spinner' -%}
+  <div v-if="!loading" class="mz-results" :class="{'mz-loaded': !loading }">
+  {%- else -%}
+  <div class="mz-results mz-loaded">
+  {%- endif -%}
+  <div class="mz-box-body {{ filterLayoutClass }}">
+    {%- if filterLayout == 'horizontal' -%}
+    {% render 'mezereon-skeleton', type: 'horizontal-filter', style: '' %}
+    {%- endif -%}
+    <mz-refinements v-if="!loading" :horizontal="true" class="mz-aggs-horizontal mz-hidden-xs"></mz-refinements>
+    {%- if filterSelections -%}
+    {% render 'mezereon-skeleton', type: 'selections', style: '' %}
+    {%- endif -%}
+    {%- if filterLayout == 'vertical' -%}
+    <portal to="mz-vertical-selections" :disabled="portalNav">
+      <mz-selections v-if="!loading && selections.length > 0"></mz-selections>
+    </portal>
+    {%- else -%}
+      <mz-selections v-if="!loading && selections.length > 0"></mz-selections>
+    {%- endif -%}
+    <div class="{{ filterLayoutClass }}">
+      <div class="mz-aggs mz-aggs-vertical">
+        <portal-target name="mz-vertical-selections"></portal-target>
+        <portal class="mz-hidden-xs" to="mz-mobile-facets" :disabled="!portalNav">
+          <mz-banner zone="facets-top-1"></mz-banner>
+          <mz-banner zone="facets-top-2"></mz-banner>
+          {%- if filterLayout == 'vertical' -%}
+          {% render 'mezereon-skeleton', type: 'vertical-filter', style: '' %}
+          {%- endif -%}
+          <mz-refinements icon-set="animated"></mz-refinements>
+          <mz-banner zone="facets-bottom-1"></mz-banner>
+          <mz-banner zone="facets-bottom-2"></mz-banner>
+        </portal>
+      </div>
+    </div>
+    {% render 'mezereon-skeleton', type: 'action-bar', style: '' %}
+    <div class="mz-action-bar-group" v-if="!loading">
+      <mz-filter-btn @toggle-portal-nav="togglePortalNav">
+        Filter
+        <svg viewBox="0 0 512 512" aria-hidden="true" role="img" xmlns="http://www.w3.org/2000/svg" style="height: 1em; overflow: visible; vertical-align: -0.125em; text-align: center; width: 1.25em;"><g transform="translate(256 256)"><g transform=""><path d="M487.976 0H24.028C2.71 0-8.047 25.866 7.058 40.971L192 225.941V432c0 7.831 3.821 15.17 10.237 19.662l80 55.98C298.02 518.69 320 507.493 320 487.98V225.941l184.947-184.97C520.021 25.896 509.338 0 487.976 0z" fill="currentColor" transform="translate(-256 -256)"></path></g></g></svg>
+      </mz-filter-btn>
+      <mz-sort-by></mz-sort-by>
+      <mz-paging>
+        <template v-slot:before>
+          <span class="mz-sort-by mz-hidden-xs"></span>
+        </template> 
+      </mz-paging>
+      <mz-hits-info></mz-hits-info>
+    </div>
+    <div class="mz-hits">
+      {% render 'mezereon-skeleton', type: 'grid', style: '' %}
+      <mz-banner zone="results-top-1"></mz-banner>
+      <mz-banner zone="results-top-2"></mz-banner>
+      <mz-hits-container class="mz-hits-container">
+        <template #body>
+          <ul
+            id="product-grid"
+            data-id="{{ section.id }}"
+            class="
+              grid product-grid grid--{{ section.settings.columns_mobile }}-col-tablet-down
+              grid--{{ section.settings.columns_desktop }}-col-desktop
+              {% if section.settings.quick_add == 'bulk' %} collection-quick-add-bulk{% endif %}
+            "              
+          >
+            <template v-for="(hit, index) of hits.items">
+              <mz-lazy-item element="li" :item="hit.item" class="grid__item{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}" :data-product-handle="hit.item.handle" :data-product-id="hit.item.id" :index="index">
+                <div class="mz-skeleton thumbnail" style="width: 100%"></div>
+              </mz-lazy-item>
+            </template>
+          </ul>
+        </template>
+      </mz-hits-container>
+      <mz-banner zone="results-bottom-1"></mz-banner>
+      <mz-banner zone="results-bottom-2"></mz-banner>
+    </div>
+    <mz-pagination></mz-pagination>
+  </div>
+  </div>
+  <ch-drawer location="right" custom-class="mz-drawer" area="80%" :visible.sync="portalNav">
+    <portal-target name="mz-mobile-facets"></portal-target>
+  </ch-drawer>
+</div>
+{%- endif -%}
+{%- endif -%}
